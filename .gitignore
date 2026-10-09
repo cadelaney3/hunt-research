@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+node_modules/
+web/dist/
+data/explore/
+.DS_Store
+data/raw/mt/land/
