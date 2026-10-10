@@ -104,6 +104,31 @@ permit areas. Elk only so far.
 Still missing for Montana: sex ratios, and population for deer, pronghorn,
 moose, sheep and goat.
 
+## Ask the data (AI assistant)
+
+The **Ask the data** button opens a chat that answers questions from the loaded
+data, such as "best elk permit I can draw within 5 years with big bulls?". It
+uses your table's residency, points and weights. Claude queries the data through
+four tools that run in your browser and reuse the table's scoring, so the numbers
+match the table: `describe_data`, `search_hunts`, `get_hunt` and `show_in_table`
+(which changes the table's filters, sort or open hunt). Hunt names in answers are
+links that open the detail view.
+
+Setup (local only):
+
+```sh
+cp web/.env.example web/.env.local     # then put your key in it: ANTHROPIC_API_KEY=sk-ant-...
+cd web && npm run dev                  # restart after adding the key
+```
+
+- The key stays on your machine. The Vite dev server reads it from `web/.env.local`,
+  which is gitignored, and forwards requests (`web/server/chat.ts`). The browser never sees it.
+- Model: Claude Opus 5.5 at medium effort, with server-side refusal fallback enabled.
+  The chat header shows a running cost estimate.
+- Dev server only. A static `npm run build` has no endpoint, so the button is hidden there.
+- The system prompt (`web/server/systemPrompt.ts`) describes the data and its caveats.
+  Update it when you add new data sources.
+
 ## Adding real data
 
 1. Put PDFs in `data/raw/<state>/<species>/<year>/`.

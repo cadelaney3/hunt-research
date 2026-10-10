@@ -4,9 +4,10 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
+  type OnChangeFn,
   type SortingState,
 } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { fmt } from './format'
 import type { Ranked } from './scoring'
 
@@ -15,7 +16,7 @@ const col = createColumnHelper<Ranked>()
 const u = (v: number | null) => v ?? undefined
 
 const columns = [
-  col.accessor('rank', { header: '#', cell: (c) => <span className="muted">{c.getValue()}</span> }),
+  col.accessor('rank', { header: '#', sortDescFirst: false, cell: (c) => <span className="muted">{c.getValue()}</span> }),
   col.accessor((r) => r.hunt.units.join(', '), {
     id: 'unit',
     header: 'Unit',
@@ -72,12 +73,12 @@ const columns = [
   }),
   col.accessor((r) => u(r.m.drawOdds), { id: 'draw', header: 'Your odds', sortUndefined: 'last', cell: (c) => fmt.odds(c.getValue()) }),
   col.accessor((r) => u(r.m.ptsFor50), {
-    id: 'pts', header: 'Pts for 50%', sortUndefined: 'last',
-    cell: (c) => (c.getValue() == null ? '40+' : fmt.int(c.getValue())),
+    id: 'pts', header: 'Pts for 50%', sortUndefined: 'last', sortDescFirst: false,
+    cell: (c) => (c.getValue() === Infinity ? '40+' : fmt.int(c.getValue())),
     meta: { title: 'Fewest points giving at least 50% draw odds in the latest year' },
   }),
   col.accessor((r) => u(r.m.appsPerTag), {
-    id: 'appsPerTag', header: 'Apps / tag', sortUndefined: 'last',
+    id: 'appsPerTag', header: 'Apps / tag', sortUndefined: 'last', sortDescFirst: false,
     cell: (c) => fmt.num(c.getValue(), 1),
     meta: { title: 'First-choice applicants per tag drawn, latest year, your residency' },
   }),
@@ -112,7 +113,7 @@ const columns = [
   col.accessor((r) => u(r.m.rating), { id: 'rating', header: 'Rating', sortUndefined: 'last', cell: (c) => fmt.num(c.getValue(), 1) }),
   col.accessor((r) => u(r.m.publicLand), { id: 'public', header: 'Public', sortUndefined: 'last', cell: (c) => fmt.pct100(c.getValue()) }),
   col.accessor((r) => u(r.m.huntersPerSqMi), {
-    id: 'crowding', header: 'Hunters / sq mi', sortUndefined: 'last', cell: (c) => fmt.num(c.getValue(), 2),
+    id: 'crowding', header: 'Hunters / sq mi', sortUndefined: 'last', sortDescFirst: false, cell: (c) => fmt.num(c.getValue(), 2),
   }),
 ]
 
@@ -129,10 +130,11 @@ interface Props {
   rows: Ranked[]
   selectedId: string | null
   onSelect: (id: string) => void
+  sorting: SortingState
+  onSortingChange: OnChangeFn<SortingState>
 }
 
-export default function RankTable({ rows, selectedId, onSelect }: Props) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'rank', desc: false }])
+export default function RankTable({ rows, selectedId, onSelect, sorting, onSortingChange }: Props) {
   // Hide metric columns that are empty for every row (e.g. no harvest data loaded yet).
   const columnVisibility = useMemo(() => {
     const vis: Record<string, boolean> = {}
@@ -147,9 +149,12 @@ export default function RankTable({ rows, selectedId, onSelect }: Props) {
     data: rows,
     columns,
     state: { sorting, columnVisibility },
-    onSortingChange: setSorting,
+    onSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    // Clicking toggles between the two directions; a third click shouldn't drop
+    // back to an arbitrary unsorted order.
+    enableSortingRemoval: false,
     getRowId: (r) => r.hunt.id,
   })
 

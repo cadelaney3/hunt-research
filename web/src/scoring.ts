@@ -34,7 +34,7 @@ export interface Settings {
 /** Raw, human-readable metrics for one hunt under the current settings. */
 export interface Metrics {
   drawOdds: number | null // 0..1
-  ptsFor50: number | null // fewest points with ≥50% odds in the latest year
+  ptsFor50: number | null // fewest points with ≥50% odds in the latest year; Infinity = not within 40, null = no draw data
   success: number | null // 0..1
   harvestChance: number | null // drawOdds × success
   density: number | null // animals / sq mi
@@ -175,7 +175,7 @@ export function computeMetrics(hunt: Hunt, s: Settings): Metrics {
 
   return {
     drawOdds: odds.value,
-    ptsFor50: general ? 0 : latestDraw ? pointsFor(latestLevels, hunt.draw_system) : null,
+    ptsFor50: general ? 0 : latestDraw ? pointsFor(latestLevels, hunt.draw_system) ?? Infinity : null,
     success: success.value,
     harvestChance: odds.value != null && success.value != null ? odds.value * success.value : null,
     density: density.value,

@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import type { SortingState } from '@tanstack/react-table'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import ChatPanel from './ai/ChatPanel'
+import type { ToolContext, ViewChange } from './ai/tools'
 import Controls, { type Filters } from './Controls'
 import HuntDetail from './HuntDetail'
 import RankTable from './RankTable'
@@ -27,6 +30,8 @@ export default function App() {
   const [weights, setWeights] = usePersistentState<Weights>('weights', DEFAULT_WEIGHTS)
   const [filters, setFilters] = usePersistentState('filters', DEFAULT_FILTERS)
   const [selectedId, setSelectedId] = useHashSelection()
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'rank', desc: false }])
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}data/hunts.json`)
@@ -83,6 +88,17 @@ export default function App() {
 
   const selected = ranked.find((r) => r.hunt.id === selectedId) ?? null
 
+  // The assistant can change what the table shows (filters, sort, open hunt).
+  const applyView = useCallback((v: ViewChange) => {
+    setFilters((f) => ({ ...f, ...v.filters }))
+    if (v.sort) setSorting([v.sort])
+    if (v.openHuntId) setSelectedId(v.openHuntId)
+  }, [setFilters, setSelectedId])
+  const toolCtx = useMemo<ToolContext | null>(
+    () => (data ? { data, settings, weights, currentSpecies: species, applyView } : null),
+    [data, settings, weights, species, applyView],
+  )
+
   if (error) return <div className="empty">Couldn’t load data/hunts.json: {error}. Run <code>python -m ingest build</code>.</div>
   if (!data) return <div className="empty">Loading…</div>
 
@@ -99,6 +115,9 @@ export default function App() {
             )}
           </p>
         </div>
+        {import.meta.env.DEV && !chatOpen && (
+          <button className="ask-button" onClick={() => setChatOpen(true)}>Ask the data</button>
+        )}
       </header>
 
       <Controls
@@ -130,7 +149,7 @@ export default function App() {
             </div>
           )}
         </div>
-        <RankTable rows={visible} selectedId={selectedId} onSelect={setSelectedId} />
+        <RankTable rows={visible} selectedId={selectedId} onSelect={setSelectedId} sorting={sorting} onSortingChange={setSorting} />
       </main>
 
       {selected && (
@@ -141,6 +160,10 @@ export default function App() {
           available={available}
           onClose={() => setSelectedId(null)}
         />
+      )}
+
+      {chatOpen && toolCtx && (
+        <ChatPanel ctx={toolCtx} onOpenHunt={setSelectedId} onClose={() => setChatOpen(false)} />
       )}
     </div>
   )

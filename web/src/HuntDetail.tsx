@@ -115,7 +115,7 @@ export default function HuntDetail({ row, settings, weights, available, onClose 
           ) : (
             <>
               <Tile label="Your draw odds" value={fmt.odds(m.drawOdds)} sub={`${res}, ${settings.points} pts`} />
-              <Tile label="Pts for 50% odds" value={m.ptsFor50 == null ? '40+' : String(m.ptsFor50)} sub={hunt.draw_system === 'bonus' ? 'bonus-point lottery' : undefined} />
+              <Tile label="Pts for 50% odds" value={m.ptsFor50 === Infinity ? '40+' : fmt.int(m.ptsFor50)} sub={hunt.draw_system === 'bonus' ? 'bonus-point lottery' : undefined} />
             </>
           )}
           {m.success != null
